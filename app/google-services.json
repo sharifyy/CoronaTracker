@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "528624313885",
+    "project_id": "big-pact-300908",
+    "storage_bucket": "big-pact-300908.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:528624313885:android:de2b55755b8ba791b688f4",
+        "android_client_info": {
+          "package_name": "com.maanmart.coronapatienttracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "528624313885-sqg7f5ie0vrasmrg6mvhfa3u3610dgep.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.maanmart.coronapatienttracker",
+            "certificate_hash": "ddf7c5697dfbce02124c70f9ebbc801af74faf36"
+          }
+        },
+        {
+          "client_id": "528624313885-5bo28ct76pso2plbtlb0b0lvrmgslhgj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-yDcNWkI6NK1Nr-EPbq0fBkroXYlRW8o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "528624313885-5bo28ct76pso2plbtlb0b0lvrmgslhgj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
