@@ -11,6 +11,7 @@ import android.content.IntentSender
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
@@ -57,7 +58,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mapsViewModel: MapsViewModel
     private val TAG = "MapsActivity"
-    private val defaultZoom = 13f
+    private var defaultZoom = 13f
+    private val defaultLocation = LatLng(34.323948, 47.073625)
+
     private lateinit var mMap: GoogleMap
     private var isLocationPermissionGranted = false
     private var gpsEnabled = false
@@ -109,16 +112,54 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
             updateAlertText(locations.size)
         })
+
+        mapsViewModel.firebaseTokenRegistration.observe(this@MapsActivity, Observer {
+            if(it.isNotBlank()) Log.e(TAG,it)
+        })
+
+        registerFirebaseToken()
+
+    }
+
+    override fun onBackPressed() {
+
+    }
+
+    private fun checkBackgroundNotification(){
+        val title = intent.getStringExtra("title")?:return
+        val message = intent.getStringExtra("message")?:return
+        if (this::mMap.isInitialized) {
+            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                return
+            }
+            fusedLocationClient.lastLocation
+                    .addOnSuccessListener { location : Location? ->
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                                LatLng(location?.latitude?:defaultLocation.latitude,location?.longitude?:defaultLocation.longitude), 18f))
+                    }
+            updateAlertText(1)
+
+        }
+//        notifyUser(title,message)
+    }
+
+    private fun registerFirebaseToken() {
+        val prefs = getSharedPreferences("AppPreffs", MODE_PRIVATE)
+        val mobile = prefs.getString("mobile", null) ?: return
+        val identityCode = prefs.getString("identityCode", null) ?: return
+        val token = prefs.getString("firebaseToken", null) ?: return
+        mapsViewModel.registerFirebaseToken(mobile,identityCode,token)
     }
 
     // هشدار در صورت وجود بیمار کرونایی
-    private fun notifyUser() {
+    private fun notifyUser(title:String = "خطر کووید ۱۹",message:String="بیمار کرونایی در اطراف شما وجود دارد") {
         val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_virus)
-                .setContentTitle("خطر کووید ۱۹")
-                .setContentText("بیمار کرونایی در اطراف شما وجود دارد")
+                .setContentTitle(title)
+                .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle()
-                        .bigText("شما می توانید محل بیماران کرونایی اطراف خود را روی نقشه ببینید"))
+                        .bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setVibrate(longArrayOf(1000L, 1000L, 1000L))
                 .setAutoCancel(true)
@@ -130,7 +171,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             notify(notificationId, builder.build())
         }
 
-        vibrator.vibrate(2500)
+//        vibrator.vibrate(2500)
+        updateAlertText(1)
     }
 
     // اپدیت متن وجود یا عدم وجود بیمار کرونایی
@@ -139,6 +181,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             alertText.text = "بیمار کرونایی در اطراف شما وجود ندارد"
             alertText.setBackgroundColor(Color.parseColor("#00af91"))
         } else {
+            vibrator.vibrate(2500)
             alertText.text = "${size.toPersian()} بیمار کرونایی در اطراف شما وجود دارد"
             alertText.setBackgroundColor(Color.parseColor("#ff4646"))
         }
@@ -171,7 +214,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
      */
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-
+        checkBackgroundNotification()
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return
         }
@@ -179,15 +222,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         startLocationService()
 
         mMap.isMyLocationEnabled = true
-        moveCameraToSanadaj()
+        moveCameraToDefaultLocation()
         runnable.run()
+
     }
 
     // تغییر موقعیت نقشه به شهر سنندج
-    private fun moveCameraToSanadaj() {
+    private fun moveCameraToDefaultLocation() {
         if (!this::mMap.isInitialized) return
-        val sna = LatLng(35.2701504522131, 46.99896220279051)
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sna, defaultZoom))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, defaultZoom))
     }
 
     //دریافت موقعیت بیماران کرونایی

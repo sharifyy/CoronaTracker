@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity() {
 
             loading.visibility = View.GONE
             if(settingModel.userId == null) return@Observer
+            saveUsernameAndPasswordForFirebaseToken(username.text.toString(), password.text.toString())
             rememberUser(settingModel)
             SharedState.personId = settingModel.userId
             SharedState.sendLocationInterval = settingModel.settingResponse?.sendLocationsInterval
@@ -120,10 +121,19 @@ class MainActivity : AppCompatActivity() {
 //        password.setText("2222222222")
     }
 
+    private fun saveUsernameAndPasswordForFirebaseToken(username: String, password: String) {
+        val editor: SharedPreferences.Editor = getSharedPreferences("AppPreffs", MODE_PRIVATE).edit()
+        editor.putString("mobile", username)
+        editor.putString("identityCode", password)
+        editor.apply()
+    }
+
     // رفتن به صفحه نقشه
     private fun startMap() {
-        val intent = Intent(this, MapsActivity::class.java)
-        startActivity(intent)
+        val mapIntent = Intent(this, MapsActivity::class.java)
+        mapIntent.putExtra("title",intent.getStringExtra("title"))
+        mapIntent.putExtra("message",intent.getStringExtra("message"))
+        startActivity(mapIntent)
     }
 
     // لاگین کردن یوزر در صورتی که قبلا لاگین کرده باشد

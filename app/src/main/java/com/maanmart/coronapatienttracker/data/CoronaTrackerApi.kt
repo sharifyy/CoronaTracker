@@ -1,10 +1,7 @@
 package com.maanmart.coronapatienttracker.data
 
 import com.google.gson.GsonBuilder
-import com.maanmart.coronapatienttracker.shared.dto.CheckPatientsLocationResponse
-import com.maanmart.coronapatienttracker.shared.dto.LoginResponse
-import com.maanmart.coronapatienttracker.shared.dto.SavePersonLocationResponse
-import com.maanmart.coronapatienttracker.shared.dto.SettingResponse
+import com.maanmart.coronapatienttracker.shared.dto.*
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -43,6 +40,12 @@ interface CoronaTrackerApi {
     suspend fun checkCoronaPatientsLocation(
             @Field("PersonId") personId: String,
     ): CheckPatientsLocationResponse
+
+    @POST("PersonFirebaseToken")
+    @FormUrlEncoded
+    suspend fun sendFirebaseToken(@Field("IndentityCode") identityCode: String,
+                                  @Field("Mobile") mobile:String,
+                                  @Field("FirebaseToken") token:String): FirebaseTokenResponse
 
     // استفاده از رتروفیت جهت ارتباط با سرور
     companion object {

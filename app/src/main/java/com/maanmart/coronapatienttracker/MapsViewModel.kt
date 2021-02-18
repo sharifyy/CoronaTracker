@@ -17,6 +17,9 @@ class MapsViewModel(private val dataSource: DataSource) : ViewModel() {
     private val _coronaLocations = MutableLiveData<List<List<LatLng>>?>()
     val coronaLocations: LiveData<List<List<LatLng>>?> = _coronaLocations
 
+    private val _firebaseTokenRegistration = MutableLiveData<String>()
+    val firebaseTokenRegistration:LiveData<String> = _firebaseTokenRegistration
+
     //دریافت موقعیت بیماران کرونایی از سرور
     fun getCoronaPatientsLocation(personId:String){
         viewModelScope.launch {
@@ -27,6 +30,17 @@ class MapsViewModel(private val dataSource: DataSource) : ViewModel() {
                     _coronaLocations.postValue(patientLocationsResult.data)
                 }else{
                     _coronaLocations.postValue(null)
+                }
+            }
+        }
+    }
+
+    fun registerFirebaseToken(mobile:String,identityCode:String,token:String){
+        viewModelScope.launch {
+            withContext(Dispatchers.IO){
+                val response = dataSource.sendFirebaseToken(identityCode,mobile,token)
+                if(response is Result.Error){
+                    _firebaseTokenRegistration.postValue("خطا در ثبت توکن فایربیس")
                 }
             }
         }
