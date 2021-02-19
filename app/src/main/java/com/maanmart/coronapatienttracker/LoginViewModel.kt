@@ -65,11 +65,12 @@ class LoginViewModel(private val loginRepository: DataSource) : ViewModel() {
 //        } else {
 //            username.isNotBlank()
 //        }
-        return username.isNotBlank()
+        return "^09\\d{9}".toRegex().matches(username)
+//        return username.isNotBlank()
     }
 
     // A placeholder password validation check
     private fun isPasswordValid(password: String): Boolean {
-        return password.length > 5
+        return password.length == 10
     }
 }
