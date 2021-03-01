@@ -66,7 +66,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var gpsEnabled = false
     private lateinit var serviceIntent: Intent
     private val random = Random()
-
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var alertText: TextView
     private lateinit var vibrator: Vibrator
 
@@ -97,6 +97,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager
                 .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
@@ -114,7 +115,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         })
 
         mapsViewModel.firebaseTokenRegistration.observe(this@MapsActivity, Observer {
-            if(it.isNotBlank()) Log.e(TAG,it)
+            if (it.isNotBlank()) Log.e(TAG, it)
         })
 
         registerFirebaseToken()
@@ -125,19 +126,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     }
 
-    private fun checkBackgroundNotification(){
-        val title = intent.getStringExtra("title")?:return
-        val message = intent.getStringExtra("message")?:return
+    private fun checkBackgroundNotification() {
+        val title = intent.getStringExtra("title") ?: return
+        val message = intent.getStringExtra("message") ?: return
         if (this::mMap.isInitialized) {
-            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 return
             }
-            fusedLocationClient.lastLocation
-                    .addOnSuccessListener { location : Location? ->
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                                LatLng(location?.latitude?:defaultLocation.latitude,location?.longitude?:defaultLocation.longitude), 18f))
-                    }
+            fusedLocationClient.lastLocation.addOnSuccessListener(this::moveCamera)
             updateAlertText(1)
 
         }
@@ -149,11 +146,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val mobile = prefs.getString("mobile", null) ?: return
         val identityCode = prefs.getString("identityCode", null) ?: return
         val token = prefs.getString("firebaseToken", null) ?: return
-        mapsViewModel.registerFirebaseToken(mobile,identityCode,token)
+        Log.d(TAG,token)
+        mapsViewModel.registerFirebaseToken(mobile, identityCode, token)
     }
 
     // هشدار در صورت وجود بیمار کرونایی
-    private fun notifyUser(title:String = "خطر کووید ۱۹",message:String="بیمار کرونایی در اطراف شما وجود دارد") {
+    private fun notifyUser(title: String = "خطر کووید ۱۹", message: String = "بیمار کرونایی در اطراف شما وجود دارد") {
         val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_virus)
                 .setContentTitle(title)
@@ -222,9 +220,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         startLocationService()
 
         mMap.isMyLocationEnabled = true
-        moveCameraToDefaultLocation()
+        fusedLocationClient.lastLocation
+                .addOnSuccessListener { location: Location? ->
+                    moveCamera(location)
+                }
+//        moveCameraToDefaultLocation()
         runnable.run()
 
+    }
+
+    private fun moveCamera(location: Location?) {
+        if (!this::mMap.isInitialized) return
+        val latLng = LatLng(
+                location?.latitude ?: defaultLocation.latitude,
+                location?.longitude ?: defaultLocation.longitude
+        )
+        val zoom = if (location == null) defaultZoom else 18f
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
     }
 
     // تغییر موقعیت نقشه به شهر سنندج
@@ -244,7 +256,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onResume()
         if (checkMapServices()) {
             if (isLocationPermissionGranted) {
-                if(this::mMap.isInitialized) onMapReady(mMap)
+                if (this::mMap.isInitialized) onMapReady(mMap)
                 startLocationService()
             } else {
                 getLocationPermission()
@@ -326,7 +338,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     ) == PackageManager.PERMISSION_GRANTED) {
 
                 isLocationPermissionGranted = true
-                if(this::mMap.isInitialized) onMapReady(mMap)
+                if (this::mMap.isInitialized) onMapReady(mMap)
             } else {
                 ActivityCompat.requestPermissions(
                         this,
@@ -341,7 +353,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     ) == PackageManager.PERMISSION_GRANTED
             ) {
                 isLocationPermissionGranted = true
-                if(this::mMap.isInitialized) onMapReady(mMap)
+                if (this::mMap.isInitialized) onMapReady(mMap)
             } else {
                 ActivityCompat.requestPermissions(
                         this,
@@ -451,7 +463,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         task.addOnFailureListener { exception ->
-            if (exception is ResolvableApiException){
+            if (exception is ResolvableApiException) {
                 // Location settings are not satisfied, but this can be fixed
                 // by showing the user a dialog.
                 try {
@@ -470,8 +482,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     // دریافت پاسخ نمایش دیالوگ gps
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if(requestCode == PERMISSIONS_REQUEST_ENABLE_GPS)
-            when(resultCode){
+        if (requestCode == PERMISSIONS_REQUEST_ENABLE_GPS)
+            when (resultCode) {
                 Activity.RESULT_OK -> {
                     gpsEnabled = true
                 }
