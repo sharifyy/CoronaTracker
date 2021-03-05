@@ -52,8 +52,6 @@ const val ERROR_DIALOG_REQUEST = 101
 const val PERMISSIONS_REQUEST_ENABLE_GPS = 102
 const val PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 103
 
-private const val NOTIFICATION_CHANNEL_ID = "notification_channel_01"
-
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mapsViewModel: MapsViewModel
@@ -68,7 +66,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private val random = Random()
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var alertText: TextView
-    private lateinit var vibrator: Vibrator
+//    private lateinit var vibrator: Vibrator
 
     // چک کردن وجود بیماران کرونایی به صورت زمانبندی شده
     private val handler = Handler()
@@ -85,7 +83,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_maps)
 
-        createNotificationChannel()
         createLocationRequest()
 
         mapsViewModel = ViewModelProvider(this, MapsViewModelFactory())
@@ -99,7 +96,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+//        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
         //مشاهده وضعیت وجود بیماران کرونایی
         mapsViewModel.coronaLocations.observe(this@MapsActivity, Observer {
@@ -107,7 +104,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             if (locations.isNotEmpty()) {
                 updateLocationsGraphOnMap(locations)
-                notifyUser()
+                updateAlertText(locations.size)
+//                notifyUser()
             } else {
                 if (this::mMap.isInitialized) mMap.clear()
             }
@@ -151,27 +149,27 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     // هشدار در صورت وجود بیمار کرونایی
-    private fun notifyUser(title: String = "خطر کووید ۱۹", message: String = "بیمار کرونایی در اطراف شما وجود دارد") {
-        val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_virus)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setStyle(NotificationCompat.BigTextStyle()
-                        .bigText(message))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setVibrate(longArrayOf(1000L, 1000L, 1000L))
-                .setAutoCancel(true)
-
-        val notificationId = 13
-
-        with(NotificationManagerCompat.from(this)) {
-            // notificationId is a unique int for each notification that you must define
-            notify(notificationId, builder.build())
-        }
-
-//        vibrator.vibrate(2500)
-        updateAlertText(1)
-    }
+//    private fun notifyUser(title: String = "خطر کووید ۱۹", message: String = "بیمار کرونایی در اطراف شما وجود دارد") {
+////        val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+////                .setSmallIcon(R.drawable.ic_virus)
+////                .setContentTitle(title)
+////                .setContentText(message)
+////                .setStyle(NotificationCompat.BigTextStyle()
+////                        .bigText(message))
+////                .setPriority(NotificationCompat.PRIORITY_HIGH)
+////                .setVibrate(longArrayOf(1000L, 1000L, 1000L))
+////                .setAutoCancel(true)
+////
+////        val notificationId = 13
+//
+////        with(NotificationManagerCompat.from(this)) {
+////            // notificationId is a unique int for each notification that you must define
+////            notify(notificationId, builder.build())
+////        }
+//
+////        vibrator.vibrate(2500)
+//        updateAlertText(1)
+//    }
 
     // اپدیت متن وجود یا عدم وجود بیمار کرونایی
     private fun updateAlertText(size: Int) {
@@ -179,7 +177,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             alertText.text = "بیمار کرونایی در اطراف شما وجود ندارد"
             alertText.setBackgroundColor(Color.parseColor("#00af91"))
         } else {
-            vibrator.vibrate(2500)
+//            vibrator.vibrate(2500)
             alertText.text = "${size.toPersian()} بیمار کرونایی در اطراف شما وجود دارد"
             alertText.setBackgroundColor(Color.parseColor("#ff4646"))
         }
@@ -194,7 +192,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 mMap.addMarker(MarkerOptions().position(list.last()).title("Covid-19: Patient-${index + 1}"))
             }
 
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(locations[0][0], defaultZoom))
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(locations[0][0], 18f))
         }
     }
 
@@ -224,7 +222,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 .addOnSuccessListener { location: Location? ->
                     moveCamera(location)
                 }
-//        moveCameraToDefaultLocation()
         runnable.run()
 
     }
@@ -239,12 +236,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
     }
 
-    // تغییر موقعیت نقشه به شهر سنندج
-    private fun moveCameraToDefaultLocation() {
-        if (!this::mMap.isInitialized) return
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, defaultZoom))
-    }
-
     //دریافت موقعیت بیماران کرونایی
     private fun getCoronaPatientsLocation() {
         val personId = SharedState.personId
@@ -256,7 +247,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onResume()
         if (checkMapServices()) {
             if (isLocationPermissionGranted) {
-                if (this::mMap.isInitialized) onMapReady(mMap)
                 startLocationService()
             } else {
                 getLocationPermission()
@@ -265,16 +255,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun checkMapServices(): Boolean {
-        if (isServicesOK()) {
-            return gpsEnabled
-//            return if (isMapsEnabled()) {
-//                true
-//            }else{
-//                createLocationRequest()
-//                isLocationPermissionGranted
-//            }
-        }
-        return false
+        return isServicesOK()
     }
 
     // بررسی وضعیت googly play services روی موبایل کاربر
@@ -293,36 +274,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                 .getErrorDialog(this, available, ERROR_DIALOG_REQUEST)
                 dialog.show()
             }
-            else -> toast("شما قادر به استفاده از نوقعیت یاب نیستید")
+            else -> toast("شما قادر به استفاده از موقعیت یاب نیستید")
         }
         return false
     }
-
-    private fun isMapsEnabled(): Boolean {
-        val manager = this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
-        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-//            buildAlertMessageNoGps()
-
-            return false
-        }
-        return true
-    }
-
-    private fun buildAlertMessageNoGps() {
-        val builder = AlertDialog.Builder(this)
-        builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
-                .setCancelable(false)
-                .setPositiveButton("Yes") { _, _ ->
-                    // dialog,id
-                    val enableGpsIntent =
-                            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                    startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS)
-                }
-        val alert = builder.create()
-        alert.show()
-    }
-
 
     // گرفتن اجازه استفاده از نقشه از کاربر
     private fun getLocationPermission() {
@@ -353,7 +308,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     ) == PackageManager.PERMISSION_GRANTED
             ) {
                 isLocationPermissionGranted = true
-                if (this::mMap.isInitialized) onMapReady(mMap)
+                startLocationService()
+//                if (this::mMap.isInitialized) onMapReady(mMap)
             } else {
                 ActivityCompat.requestPermissions(
                         this,
@@ -400,25 +356,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         handler.removeCallbacks(runnable)
     }
 
-    //ایجاد کانال نوتیفیکیشن
-    private fun createNotificationChannel() {
-        // Create the NotificationChannel, but only on API 26+ because
-        // the NotificationChannel class is new and not in the support library
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "NotificationChannel"
-            val descriptionText = "NotificationDescription"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-                enableVibration(true)
-            }
-            // Register the channel with the system
-            val notificationManager: NotificationManager =
-                    getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
     // نمایش منو روی تولبار
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -459,7 +396,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             // All location settings are satisfied. The client can initialize
             // location requests here.
             // ...
-            gpsEnabled = true
+            Log.i(TAG,locationSettingsResponse.toString())
         }
 
         task.addOnFailureListener { exception ->
